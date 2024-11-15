@@ -5,7 +5,7 @@ This guide provides step-by-step instructions for setting up a Jetson device wit
 ---
 ## Table of Contents
 ### Installation Guide
-- [1. Jetson Orin Nano Setup](#1-jetson-orin-nano-setup)
+- [1. Jetson AGX Orin Setup](#1-jetson-agx-orin-setup)
 - [2. ROS2 Humble Installation](#2-ros2-humble-installation)
 - [3. PyTorch and TensorRT Installation](#3-pytorch-and-tensorrt-installation)
 - [4. Installation Livox LiDAR Package](#4-installation-livox-lidar-package)
@@ -18,7 +18,7 @@ This guide provides step-by-step instructions for setting up a Jetson device wit
 ---
 
 ## Installation Guide
-## 1. Jetson Orin Nano Setup
+## 1. Jetson AGX Orin Setup
 ```bash
 sudo apt update
 sudo apt upgrade
@@ -94,7 +94,7 @@ git clone https://github.com/Livox-SDK/Livox-SDK2.git
 cd ./Livox-SDK2/
 mkdir build
 cd build
-cmake .. && make -j1
+cmake .. && make -j
 sudo make install
 
 cd ~
@@ -177,9 +177,9 @@ echo "source ~/autonomous_ship_ws/install/setup.bash" >> ~/.bashrc
 
 cd ~/autonomous_ship_ws/src
 
-wget https://github.com/neporez/rain_autonomous_ship/archive/refs/heads/jetson_orin_nano.zip
-unzip jetson_orin_nano.zip && rm -rf jetson_orin_nano.zip
-mv rain_autonomous_ship-jetson_orin_nano.zip/* . && rm -rf rain_autonomous_ship-jetson_orin_nano
+wget https://github.com/neporez/rain_autonomous_ship/archive/refs/heads/jetson_agx_orin.zip
+unzip jetson_agx_orin.zip && rm -rf jetson_agx_orin.zip
+mv rain_autonomous_ship-jetson_agx_orin.zip/* . && rm -rf rain_autonomous_ship-jetson_agx_orin
 mv PointPillars ~ && mv lidarslam_ros2 ~/ndt_ws/src
 
 cd ~/autonomous_ship_ws
@@ -245,17 +245,26 @@ ros2 bag play mid360_bagfile
     torch_ckpt: /PointPillars/pretrained/best_points16.pth
     inference_time_check: True # 추론 시간 확인
     tensorrt_enable: True
-    marker_queue_size: 1000 # dbscan에서 사용될 marker의 저장 용량
+
+/bbox_cluster:
+  ros__parameters:
+    marker_queue_size: 100 # dbscan에서 사용될 marker의 저장 용량
     dbscan_eps: 1.0 # 클러스터 인정 범위
     dbscan_min_samples: 3 #최소 클러스터 인정 개수
     dbscan_tracking_queue_distance: 2.0 # marker_queue와 tracking_queue 간의 식별 과정을 위한 distance
     dbscan_update_tracking_queue_weight: 0.1 # marker_queue가 tracking_queue를 업데이트 시킬 때 tracking_queue가 기존 정보를 얼마나 남길 것인지
-    port_length: 32.0 # 항구의 길이
-    port_width: 5.6 # 항구의 너비(왼쪽 선박 중앙에서 오른쪽 선박 중앙까지 길이)
-    boat_distance: 4.3 # 보트끼리의 간격
+    pose_topic_name: /current_pose # Local Map 상에서의 Pose
+   
 ```
 ~/rain_autonomous_ship/src/rain_autonomous_ship/param/rain_autonomous_ship_param.yaml
 ```bash
+/marker_and_parking_point_visualizer:
+  ros__parameters:
+    port_length: 32.0 # 항구의 길이
+    port_width: 5.6 # 항구의 너비(왼쪽 선박 중앙에서 오른쪽 선박 중앙까지 길이)
+    boat_distance: 4.3 # 보트끼리의 간격
+    visualize_frame: ndt_map #시각화 프레임
+
 /laserscan_map:
   ros__parameters:
     slam_map_topic_name: /map # local map의 PointCloud2
@@ -271,6 +280,7 @@ ros2 bag play mid360_bagfile
     - -30
     - 30
     visualize_frame: ndt_map
+    
 ```
 ~/ndt_ws/src/lidarslam_ros2/lidarslam/param/lidarslam.yaml
 ```bash
