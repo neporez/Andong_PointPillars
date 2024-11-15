@@ -1,6 +1,8 @@
 from launch import LaunchDescription
 from launch_ros.actions import Node
 from launch.actions import IncludeLaunchDescription
+import launch_ros.actions
+import launch
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from ament_index_python.packages import get_package_share_directory
 import os
@@ -21,6 +23,12 @@ def generate_launch_description():
         'params_file',
         default_value=pointpillars_params,
         description='Path to the ROS2 parameters file to use'
+    )
+
+    rviz_param_dir = os.path.join(
+        get_package_share_directory('rain_autonomous_ship'),
+        'rviz',
+        'map_2d.rviz'
     )
 
 
@@ -44,13 +52,6 @@ def generate_launch_description():
         ])
     )
 
-    marker_and_parking_point_visualizer_node = Node(
-        package='rain_autonomous_ship',
-        executable='marker_and_parking_point_visualizer',
-        name='marker_and_parking_point_visualizer',
-        parameters=[LaunchConfiguration('params_file')]
-    )
-
     laserscan_map_node = Node(
         package='rain_autonomous_ship',
         executable='laserscan_map',
@@ -58,10 +59,19 @@ def generate_launch_description():
         parameters=[LaunchConfiguration('params_file')]
     )
 
+    rviz = launch_ros.actions.Node(
+        package='rviz2',
+        executable='rviz2',
+        arguments=['-d', rviz_param_dir],
+        output='log'
+    )
+
+
+
     return LaunchDescription([
         params_declare,
         rain_det_launch,
         ndt_lidarslam_launch,
         laserscan_map_node,
-        marker_and_parking_point_visualizer_node
+        rviz
     ])

@@ -13,7 +13,7 @@
 // Logger for TensorRT info/warning/errors
 class Logger : public nvinfer1::ILogger           
 {
-    void log(Severity severity, const char* msg) override
+    void log(Severity severity, const char* msg) noexcept override
     {
         switch(severity) {
             case Severity::kINTERNAL_ERROR:

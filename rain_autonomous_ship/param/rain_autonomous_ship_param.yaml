@@ -1,14 +1,7 @@
-/marker_and_parking_point_visualizer:
-  ros__parameters:
-    port_length : 32.0 # 항구의 길이
-    port_width : 5.6 # 항구의 너비(왼쪽 선박 중앙에서 오른쪽 선박 중앙까지 길이)
-    boat_distance : 4.3 # 보트끼리의 간격
-    visualize_frame : ndt_map #시각화 프레임
-
 /laserscan_map:
   ros__parameters:
     slam_map_topic_name: /map # local map의 PointCloud2
-    pose_topic_name : /current_pose # Local Map 상에서의 Pose
+    pose_topic_name: /current_pose # Local Map 상에서의 Pose
     map_angle_range:
     - -180
     - 180
@@ -19,7 +12,7 @@
     map_vertical_fov_range:
     - -30
     - 30
-    visualize_frame : ndt_map
+    visualize_frame: ndt_map
   
   
 

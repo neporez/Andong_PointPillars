@@ -1,18 +1,14 @@
 import numpy as np
 import torch
 import sys
-import time
-from collections import deque
 
 import tensorrt as trt
 import pycuda.driver as cuda
-import math
 import os
 
+home_path = os.path.expanduser('~')
 
-from rain_det.util.iou_3d_utils import calculate_3d_iou
-
-model_path = os.environ["HOME"]+"/PointPillars"
+model_path = home_path+"/PointPillars"
 
 sys.path.append(model_path)
 
@@ -31,7 +27,7 @@ class HostDeviceMem(object):
     def __repr__(self):
         return self.__str__()
 
-class PointPillars():
+class PointPillarsTensorRT():
 
     def __init__(self,
                  nclasses=2,
@@ -49,6 +45,7 @@ class PointPillars():
         self.__max_num_points = max_num_points
         self.__max_num_pillars = max_num_pillars
         self.__engine_path = engine_path
+        
 
         if self.__engine_path is None :
             print("trt engine is unavailable")
@@ -129,7 +126,10 @@ class PointPillars():
     def inference(self, points) :
 
         
+        points[:, 3] /= 255.0
+    
         pc_torch = torch.from_numpy(points).cuda()
+        
 
         with torch.no_grad():
             pillars, coors_batch, npoints_per_pillar = self.__model_pre(batched_pts=[pc_torch])
@@ -138,8 +138,8 @@ class PointPillars():
 
             if(num_pillars < 50):
                 print("num_pillars < 50 , num_pillars: ", num_pillars)
-                return None, None, None
-        
+                return None, None, None 
+
         for i, inp in enumerate(self.__inputs):
             if i == 0:
                 data = pillars.cpu().numpy().astype(np.float32)
@@ -149,32 +149,24 @@ class PointPillars():
                 data = npoints_per_pillar.cpu().numpy().astype(np.int32)
             else:
                 raise ValueError(f"Unexpected input index: {i}")
-            
             if data.dtype != inp.host.dtype:
                 print(f"Warning: Data type mismatch for input {i}. Expected {inp.host.dtype}, got {data.dtype}")
                 data = data.astype(inp.host.dtype)
-
             np.copyto(inp.host[:data.size], data.ravel())
-
         self.__context_trt.set_binding_shape(0, (num_pillars, self.__max_num_points, 4))
         self.__context_trt.set_binding_shape(1, (num_pillars, 4))
         self.__context_trt.set_binding_shape(2, (num_pillars,))
-
         trt_outputs = self.__do_inference(self.__context_trt, self.__bindings, self.__inputs, self.__outputs, self.__stream)
-
-
         result = [torch.from_numpy(trt_outputs[0].reshape(-1, 8+self.__nclasses)).cuda()]
-
         try:
             result_filter = self.__model_post(result)[0]
         except:
             print("inference failed")
             return None, None, None
-        
         result_filter = keep_bbox_from_lidar_range(result_filter, np.array(self.__point_cloud_range, dtype=np.float32))
-
         lidar_bboxes = result_filter['lidar_bboxes']
         labels, scores = result_filter['labels'], result_filter['scores']
 
-
         return lidar_bboxes, labels, scores
+        
+        
