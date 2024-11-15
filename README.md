@@ -8,11 +8,12 @@ This guide provides step-by-step instructions for setting up a Jetson device wit
 - [1. Jetson Orin Nano Setup](#1-jetson-orin-nano-setup)
 - [2. ROS2 Humble Installation](#2-ros2-humble-installation)
 - [3. PyTorch and TensorRT Installation](#3-pytorch-and-tensorrt-installation)
-- [4. Autonomous Ship Package Installation](#4-autonomous-ship-package-installation)
+- [4. Installation Livox LiDAR Package](#4-installation-livox-lidar-package)
+- [5. Autonomous Ship Package Installation](#5-autonomous-ship-package-installation)
 ---
 ### How to Use
 - [1. Execute the Launch File](#1-execute-the-launch-file)
-- [2. Turn On the Lidar Sensor](#2-turn-on-the-lidar-sensor)
+- [2. Turn On the LiDAR Sensor](#2-turn-on-the-lidar-sensor)
 - [3. Parameters](#3-parameters)
 ---
 
@@ -82,8 +83,89 @@ sudo apt install cuda-toolkit-12-2
 sudo apt install python3-libnvinfer-dev
 sudo apt install tensorrt
 ```
+## 4. Installation Livox LiDAR Package
 
-## 4. Autonomous Ship Package Installation
+Refer to Livox SDK repository [here](https://github.com/Livox-SDK/livox_ros_driver2)
+
+```bash
+cd ~
+sudo apt install cmake
+git clone https://github.com/Livox-SDK/Livox-SDK2.git
+cd ./Livox-SDK2/
+mkdir build
+cd build
+cmake .. && make -j1
+sudo make install
+
+cd ~
+git clone https://github.com/Livox-SDK/livox_ros_driver2.git ws_livox/src/livox_ros_driver2
+cd ~/ws_livox/src/livox_ros_driver2
+./build.sh humble
+
+echo "source ~/ws_livox/install/setup.bash" >> ~/.bashrc
+echo "export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/lib" >> ~/.bashrc
+```
+
+Setup Config File (~/ws_livox/src/livox_ros_driver2/config/MID360_config.json)
+```bash
+{
+  "lidar_summary_info" : {
+    "lidar_type": 8
+  },
+  "MID360": {
+    "lidar_net_info" : {
+      "cmd_data_port": 56100,
+      "push_msg_port": 56200,
+      "point_data_port": 56300,
+      "imu_data_port": 56400,
+      "log_data_port": 56500
+    },
+    "host_net_info" : {
+      "cmd_data_ip" : "192.168.10.50", #<-----Your Ethernet Static IP
+      "cmd_data_port": 56101,
+      "push_msg_ip": "192.168.10.50", #<-----Your Ethernet Static IP
+      "push_msg_port": 56201,
+      "point_data_ip": "192.168.10.50", #<-----Your Ethernet Static IP
+      "point_data_port": 56301,
+      "imu_data_ip" : "192.168.10.50", #<-----Your Ethernet Static IP
+      "imu_data_port": 56401,
+      "log_data_ip" : "",
+      "log_data_port": 56501
+    }
+  },
+  "lidar_configs" : [
+    {
+      "ip" : "192.168.10.171", #<-----Your LiDAR IP
+      "pcl_data_type" : 1,
+      "pattern_mode" : 0,
+      "extrinsic_parameter" : {
+        "roll": 0.0,
+        "pitch": 0.0,
+        "yaw": 0.0,
+        "x": 0,
+        "y": 0,
+        "z": 0
+      }
+    }
+  ]
+}
+```
+
+Switching Message Type (~/ws_livox/src/livox_ros_driver2/launch/msg_MID360_launch.py)
+```bash
+xfer_format   = 0    # 0-Pointcloud2(PointXYZRTL), 1-customized pointcloud format
+```
+
+build Livox SDK
+
+```bash
+cd ~/ws_livox/src/livox_ros_driver2
+./build.sh humble
+```
+
+
+
+## 5. Autonomous Ship Package Installation
 
 ```bash
 cd ~
@@ -129,7 +211,7 @@ cd ~/PointPillars/deployment && python pytorch2onnx.py --ckpt ../pretrained/best
 ros2 launch rain_autonomous_ship rain_autonomous_ship.launch.py
 ```
 
-## 2. Turn On the Lidar Sensor
+## 2. Turn On the LiDAR Sensor
 ```bash
 ros2 launch livox_ros_driver2 msg_MID360_launch.py
 ```
