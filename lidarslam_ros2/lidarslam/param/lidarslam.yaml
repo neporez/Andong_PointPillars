@@ -26,8 +26,8 @@ scan_matcher:
     use_imu: false
     use_odom: false
     debug_flag: false
-    ndt_accumulate_stack: 1
-    ndt_accumulate_cloud_topic_name: "/rain/autonomous_ship/ndt_filtered_pointcloud"
+    ndt_accumulate_stack: 1 # 포인트 클라우드 중첩 개수
+    ndt_accumulate_cloud_topic_name: "/rain/autonomous_ship/ndt_filtered_pointcloud" # 모델의 입력으로 들어갈 포인트 클라우드 토픽
 
 graph_based_slam:
     ros__parameters:
