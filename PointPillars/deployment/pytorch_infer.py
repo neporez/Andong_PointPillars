@@ -8,8 +8,6 @@ import torch
 import pdb
 
 
-from PIL import Image
-
 CUR = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.dirname(CUR))
 
@@ -17,7 +15,7 @@ from utils import setup_seed, read_points, keep_bbox_from_lidar_range, vis_pc
 from model import PointPillarsCore, PointPillarsPre, PointPillarsPos
 
 
-def point_range_filter(pts, point_range=[-69.12, -69.12, -3, 69.12, 69.12, 5]): #point_range=[0, -39.68, -3, 69.12, 39.68, 1]):
+def point_range_filter(pts, point_range=[0, -39.68, -3, 69.12, 39.68, 1]):
     '''
     data_dict: dict(pts, gt_bboxes_3d, gt_labels, gt_names, difficulty)
     point_range: [x1, y1, z1, x2, y2, z2]
@@ -34,27 +32,17 @@ def point_range_filter(pts, point_range=[-69.12, -69.12, -3, 69.12, 69.12, 5]): 
 
 
 def main(args):
-    # CLASSES = {
-    #     'Pedestrian': 0, 
-    #     'Cyclist': 1, 
-    #     'Car': 2
-    #     }
     CLASSES = {
-        'boat': 0,
-        'frontline' : 1,
+        'Pedestrian': 0, 
+        'Cyclist': 1, 
+        'Car': 2
         }
     LABEL2CLASSES = {v:k for k, v in CLASSES.items()}
-    pcd_limit_range = np.array([-69.12, -69.12, -3, 69.12, 69.12, 5], dtype=np.float32)
+    pcd_limit_range = np.array([0, -40, -3, 70.4, 40, 0.0], dtype=np.float32)
 
     if not args.no_cuda:
-        #model_pre = PointPillarsPre().cuda()
-        #model = PointPillarsCore(nclasses=len(CLASSES)).cuda()
-        #model_pre = PointPillarsPre(point_cloud_range=[-69.12, -69.12, -3, 69.12, 69.12, 1],voxel_size=[0.16,0.16,4]).cuda()
-        #model = PointPillarsCore(nclasses=len(CLASSES),point_cloud_range=[-69.12, -69.12, -3, 69.12, 69.12, 1],voxel_size=[0.16,0.16,4]).cuda()
-
-        model_pre = PointPillarsPre(point_cloud_range=[-69.12, -69.12, -3, 69.12, 69.12, 5],voxel_size=[0.32,0.32,8], max_num_points=16).cuda()
-        model = PointPillarsCore(nclasses=len(CLASSES),point_cloud_range=[-69.12, -69.12, -3, 69.12, 69.12, 5],voxel_size=[0.32,0.32,8]).cuda()
-
+        model_pre = PointPillarsPre().cuda()
+        model = PointPillarsCore(nclasses=len(CLASSES)).cuda()
         model.load_state_dict(torch.load(args.ckpt))
         model_post = PointPillarsPos(nclasses=len(CLASSES)).cuda()
     else:
@@ -67,7 +55,7 @@ def main(args):
     if not os.path.exists(args.pc_path):
         raise FileNotFoundError 
     pc = read_points(args.pc_path)
-    #pc = point_range_filter(pc)
+    pc = point_range_filter(pc)
     pc_torch = torch.from_numpy(pc)
     model_pre.eval()
     model.eval()
@@ -76,56 +64,11 @@ def main(args):
         if not args.no_cuda:
             pc_torch = pc_torch.cuda()
         pillars, coors_batch, npoints_per_pillar = model_pre(batched_pts=[pc_torch])
-
-        ###test####
-        print(pillars.shape)
-        print(coors_batch.shape)
-        print(npoints_per_pillar.shape)
-
-        point_cloud_range=[-69.12, -69.12, -3, 69.12, 69.12, 5]
-        voxel_size=[0.32, 0.32, 8]
-
-        x_l = int((point_cloud_range[3] - point_cloud_range[0]) / voxel_size[0])
-        y_l = int((point_cloud_range[4] - point_cloud_range[1]) / voxel_size[1])
-
-        print(x_l, " ",y_l)
-
-        canvas = torch.zeros((x_l * y_l, 1), dtype=torch.int8, device=pillars.device)
-        cur_coors = coors_batch
-
-        cur_coors_flat = cur_coors[:, 2] * x_l + cur_coors[:, 1]
-
-        canvas[cur_coors_flat] = 1
-        canvas = canvas.view(y_l, x_l, 1)
-
-
-        # Canvas를 CPU로 이동하고 NumPy 배열로 변환
-        canvas_np = canvas.cpu().numpy().squeeze()
-
-
-        canvas_np = (canvas_np * 255).astype(np.uint8)
-
-
-        img = Image.fromarray(canvas_np)
-
-
-        img.save('voxel_occupancy.png')
-
-
-        ##########
         result = model(pillars, coors_batch, npoints_per_pillar, mode='test')
-
-
         result_filter = model_post(result)[0]
     result_filter = keep_bbox_from_lidar_range(result_filter, pcd_limit_range)
     lidar_bboxes = result_filter['lidar_bboxes']
     labels, scores = result_filter['labels'], result_filter['scores']
-
-    print("lidar_bboxes: ",lidar_bboxes)
-    print("labels : ",labels)
-    print("scores : ",scores)
-
-
     vis_pc(pc, bboxes=lidar_bboxes, labels=labels)
     result_array = np.concatenate([lidar_bboxes, scores[:, None], labels[:, None]], axis=-1)
     os.makedirs(os.path.dirname(args.saved_path), exist_ok=True)
