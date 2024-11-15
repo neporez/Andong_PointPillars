@@ -13,9 +13,9 @@ class BBoxCluster(Node):
         self.declare_parameters(
             namespace='',
             parameters=[
-                ('marker_queue_size', 1000),
+                ('marker_queue_size', 100),
                 ('dbscan_eps', 1.0),
-                ('dbscan_min_samples', 3),
+                ('dbscan_min_samples', 5),
                 ('dbscan_tracking_queue_distance', 2.0),
                 ('dbscan_update_tracking_queue_weight', 0.1),
                 ('pose_topic_name', '/current_pose'),

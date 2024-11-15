@@ -7,7 +7,7 @@ from launch.actions import SetEnvironmentVariable
 from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
-
+    
     main_param_dir = launch.substitutions.LaunchConfiguration(
         'main_param_dir',
         default=os.path.join(
@@ -32,7 +32,7 @@ def generate_launch_description():
         package='scanmatcher',
         executable='scanmatcher_node',
         parameters=[main_param_dir],
-        remappings=[('/input_cloud','/rain/autonomous_ship/filtered_pointcloud')], #/livox/lidar
+        remappings=[('/input_cloud','/livox/lidar')], #/livox/lidar
         output='log',
         arguments=['--ros-args', '--log-level', 'ERROR']
     )

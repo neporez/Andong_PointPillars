@@ -1,8 +1,7 @@
-
 /pointcloud_object_detector:
   ros__parameters:
-    class_num : 2
-    max_num_points : 16 # PointPillars에서 한 Pillars에 들어가는 Point의 개수 
+    class_num: 2
+    max_num_points: 16 # PointPillars에서 한 Pillars에 들어가는 Point의 개수 
     max_num_pillars: 10000 # Pillar의 최대 개수 -> onnx -> TensorRT로 바꾸는 과정에서 선택한 maxShape의 수를 따라가는 것을 권장
     pcd_limit_range: # 입력될 pointcloud의 x1,y1,z1,x2,y2,z2 범위
     - -69.12
@@ -15,25 +14,20 @@
     - 0.32
     - 0.32
     - 8.0
-    pointcloud_topic: /rain/autonomous_ship/filtered_pointcloud # PointPillars Model에 들어가는 Pointcloud2 topic name
-    trt_engine: /home/rain/PointPillars/pretrained/model_0816.trt # TensorRT engine path
-    inference_time_check: False # 추론 시간 확인
-
-/pointcloud_filter:
-  ros__parameters:
-    min_range : 2.0 # 가장 작은 Range값 (이 Range값 이하로는 필터링 됨) 
-    z_min : 0.0 # 가장 작은 Z값 (이 Z값 이하로는 필터링 됨)
-    pointcloud_topic_name: /livox/lidar # 필터링 될 원시 포인트 클라우드
-
+    pointcloud_topic: /rain/autonomous_ship/ndt_filtered_pointcloud # PointPillars Model에 들어가는 Pointcloud2 topic name
+    trt_engine: /PointPillars/pretrained/best_points16_model.trt # TensorRT engine path
+    torch_ckpt: /PointPillars/pretrained/best_points16.pth
+    inference_time_check: True # 추론 시간 확인
+    tensorrt_enable: True
 
 /bbox_cluster:
   ros__parameters:
-    marker_queue_size : 100 # dbscan에서 사용될 marker의 저장 용량
-    dbscan_eps : 1.0 # 클러스터 인정 범위
-    dbscan_min_samples : 3 #최소 클러스터 인정 개수
-    dbscan_tracking_queue_distance : 2.0 # marker_queue와 tracking_queue 간의 식별 과정을 위한 distance
-    dbscan_update_tracking_queue_weight : 0.1 # marker_queue가 tracking_queue를 업데이트 시킬 때 tracking_queue가 기존 정보를 얼마나 남길 것인지
-    pose_topic_name : /current_pose # Local Map 상에서의 Pose
+    marker_queue_size: 100 # dbscan에서 사용될 marker의 저장 용량
+    dbscan_eps: 1.0 # 클러스터 인정 범위
+    dbscan_min_samples: 3 #최소 클러스터 인정 개수
+    dbscan_tracking_queue_distance: 2.0 # marker_queue와 tracking_queue 간의 식별 과정을 위한 distance
+    dbscan_update_tracking_queue_weight: 0.1 # marker_queue가 tracking_queue를 업데이트 시킬 때 tracking_queue가 기존 정보를 얼마나 남길 것인지
+    pose_topic_name: /current_pose # Local Map 상에서의 Pose
   
   
 

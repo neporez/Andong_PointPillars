@@ -17,26 +17,12 @@ def generate_launch_description():
         'rain_det_param.yaml'
     )
 
-    params_declare = DeclareLaunchArgument(
-        'params_file',
-        default_value=pointpillars_params,
-        description='Path to the ROS2 parameters file to use'
-    )
-
-
     pointpillars_node = Node(
         package='rain_det',
         executable='pointcloud_object_detector',
         name='pointcloud_object_detector',
         output='screen',
-        parameters=[LaunchConfiguration('params_file')]
-    )
-
-    pointcloud_filter_node = Node(
-        package='rain_det',
-        executable='pointcloud_filter',
-        name='pointcloud_filter',
-        parameters=[LaunchConfiguration('params_file')]
+        parameters=[pointpillars_params]
     )
 
     bbox_cluster_node = Node(
@@ -44,12 +30,10 @@ def generate_launch_description():
         executable='bbox_cluster',
         name='bbox_cluster',
         output='screen',
-        parameters=[LaunchConfiguration('params_file')]
+        parameters=[pointpillars_params]
     )
 
     return LaunchDescription([
-        params_declare,
         pointpillars_node,
-        pointcloud_filter_node,
         bbox_cluster_node
     ])

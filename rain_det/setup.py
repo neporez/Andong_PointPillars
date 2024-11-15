@@ -12,7 +12,7 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         (os.path.join('share', package_name, 'launch'), glob(os.path.join('launch', '*launch.[pxy][yma]*'))),
-        (os.path.join('share', package_name, 'param'), glob(os.path.join('param', '*.yaml'))),
+        (os.path.join('share', package_name, 'param'), glob('param/*.yaml')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -24,10 +24,7 @@ setup(
     entry_points={
         'console_scripts': [
             'pointcloud_object_detector = rain_det.pointcloud_object_detector:main',
-            'pointcloud_filter = rain_det.pointcloud_filter:main',
-            'laserscan_map = rain_det.laserscan_map:main',
             'bbox_cluster = rain_det.bbox_cluster:main',
-            'marker_and_parking_point_visualizer = rain_det.marker_and_parking_point_visualizer:main'
         ],
     },
 )
