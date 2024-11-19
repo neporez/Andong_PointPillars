@@ -4,7 +4,7 @@ from rclpy.node import Node
 from sensor_msgs.msg import PointCloud2, LaserScan
 from geometry_msgs.msg import PoseStamped
 import sensor_msgs_py.point_cloud2 as pc2
-from transforms3d.euler import quat2euler
+
 
 
 class LaserScanMap(Node):
@@ -14,8 +14,7 @@ class LaserScanMap(Node):
         self.declare_parameters(
             namespace='',
             parameters=[
-                ('slam_map_topic_name', '/map'),
-                ('pose_topic_name','/current_pose'),
+                ('pointcloud_topic_name', '/rain/autonomous_ship/ndt_filtered_pointcloud'),
                 ('map_angle_range',[-180, 180]),
                 ('map_laser_range',[0.0, 100.0]),
                 ('laserscan_angle_increment', 0.3),
@@ -24,8 +23,7 @@ class LaserScanMap(Node):
             ]
         )
 
-        self.slam_map_topic_name = self.get_parameter('slam_map_topic_name').get_parameter_value().string_value
-        self.pose_topic_name = self.get_parameter('pose_topic_name').get_parameter_value().string_value
+        self.pointcloud_topic_name = self.get_parameter('pointcloud_topic_name').get_parameter_value().string_value
         self.map_angle_range = list(self.get_parameter('map_angle_range').get_parameter_value().integer_array_value)
         self.map_laser_range = list(self.get_parameter('map_laser_range').get_parameter_value().double_array_value)
         self.laserscan_angle_increment = self.get_parameter('laserscan_angle_increment').get_parameter_value().double_value
@@ -36,20 +34,13 @@ class LaserScanMap(Node):
         super().__init__('laserscan_map_creator')
         self.pointcloud_sub = self.create_subscription(
             PointCloud2,
-            self.slam_map_topic_name,
+            self.pointcloud_topic_name,
             self.pointcloud_callback,
             10)
-        self.pose_sub = self.create_subscription(
-            PoseStamped,
-            self.pose_topic_name,
-            self.pose_callback,
-            10)
         
-        self.laserscan_pub = self.create_publisher(LaserScan, '/rain/autonomous_ship/map_2d', 10)
+        self.laserscan_pub = self.create_publisher(LaserScan, '/rain/autonomous_ship/pointcloud_2d', 10)
     
-        
-        self.current_pose = None
-        self.map_points = None
+        self.points = None
         
         self.min_angle = np.radians(self.map_angle_range[0])
         self.max_angle = np.radians(self.map_angle_range[1])
@@ -63,44 +54,12 @@ class LaserScanMap(Node):
         self.vertical_fov_max = np.radians(self.map_vertical_fov_range[1])
 
     def pointcloud_callback(self, msg):
-        self.map_points = msg
+        self.points = msg
 
-    def pose_callback(self, msg):
-        self.current_pose = msg.pose
-
-        if self.current_pose is None or self.map_points is None:
-            return
-
-        points = pc2.read_points(self.map_points, field_names=("x", "y", "z"), skip_nans=True)
-        transformed_points = self.transform_pointcloud(points, self.current_pose)
-        scan_ranges = self.process_pointcloud(transformed_points)
+        points = pc2.read_points(self.points, field_names=("x", "y", "z"), skip_nans=True)
+        scan_ranges = self.process_pointcloud(points)
         self.publish_laserscan(scan_ranges)
 
-        
-
-    def transform_pointcloud(self, points, pose):
-        position = pose.position
-        orientation = pose.orientation
-       
-        _, _, yaw = quat2euler([orientation.w,orientation.x, orientation.y, orientation.z])
-        
-        cos_yaw = np.cos(yaw)
-        sin_yaw = np.sin(yaw)
-        
-        translation = np.array([position.x, position.y])
-        transformed_points = []
-        
-        for point in points:
-            x, y, z = point
-            
-            point_2d = np.array([x, y]) - translation
-            
-            x_new = point_2d[0] * cos_yaw + point_2d[1] * sin_yaw
-            y_new = -point_2d[0] * sin_yaw + point_2d[1] * cos_yaw
-            
-            transformed_points.append((x_new, y_new, z))
-        
-        return transformed_points
 
     def process_pointcloud(self, points):
         num_bins = int((self.max_angle - self.min_angle) / self.angle_increment)
