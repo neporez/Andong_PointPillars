@@ -77,9 +77,10 @@ class LaserScanMap(Node):
                 
                 if 0 <= bin_index < num_bins:
                     if distance < scan_ranges[bin_index]:
-                        scan_ranges[bin_index] = distance
-        
-        scan_ranges = np.clip(scan_ranges, self.min_range, self.max_range)
+                        # 마스크 배열로 범위 제한
+                        masked_distance = np.ma.masked_outside([distance], self.min_range, self.max_range)
+                        scan_ranges[bin_index] = masked_distance.filled(np.inf)[0]
+ 
         return scan_ranges
 
     def publish_laserscan(self, scan_ranges):
