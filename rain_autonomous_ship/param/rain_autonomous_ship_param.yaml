@@ -7,8 +7,7 @@
 
 /laserscan_map:
   ros__parameters:
-    slam_map_topic_name: /map # local map의 PointCloud2
-    pose_topic_name: /current_pose # Local Map 상에서의 Pose
+    pointcloud_topic_name: /rain/autonomous_ship/ndt_filtered_pointcloud
     map_angle_range:
     - -180
     - 180
@@ -20,6 +19,13 @@
     - -30
     - 30
     visualize_frame: ndt_map
+  
+  
+
+
+
+    
+    
   
   
 
